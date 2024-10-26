@@ -1,4 +1,3 @@
-import torch
 from datetime import datetime, timedelta
 import sqlite3
 
@@ -32,6 +31,9 @@ class LinkedListQueue:
             node._prev = None 
             return node
 
+    def is_empty(self):
+        return self._head == None
+
     def __str__(self):
         if not self._head:
             return "Empty LL!"
@@ -60,12 +62,12 @@ class Node:
     def get_data(self):
         return self._data
 
-
 class Card:
     def __init__(self, front, back):
         self._front = front
         self._back = back
-        self._time_since_last_review = None
+        self._last_review_time = 0
+        self._time_since_last_review = 0
         self._interval = 0
         self._review_count = 0
         self._average_quality = 0
@@ -77,6 +79,15 @@ class Card:
     def get_features(self):
         return [self._time_since_last_review, self._review_count, self._average_quality, 
                 self._ease, self._last_response_time, self._success_rate, self._char_count]
+
+    def get_char_count(self):
+        return self._char_count
+
+    def set_front(self, text):
+        self._front = text
+
+    def set_back(self, text):
+        self._back = text
 
     def get_front(self):
         return self._front
@@ -96,6 +107,21 @@ class Deck:
         self._study_deck = StudyDeck(name)
         self._new_cards_deck = NewCardsDeck()
         self._review_session = 5
+    
+    def study_session(self):
+        cur_review_queue = LinkedListQueue()
+
+        for _ in range(self._review_session):
+            if self._new_cards_deck.is_empty():
+                break
+            else:
+                card = self._new_cards_deck.dequeue()
+                cur_review_queue.queue(card)
+
+
+    
+    def add_card(self, card):
+        self._new_cards_deck.queue_card(card)
 
     def get_study_deck(self):
         return self._study_deck.get_deck()
@@ -107,29 +133,24 @@ class Deck:
         return self.__str__()
 
     def __str__(self):
-        return str(self._study_deck)
+        return str(self._study_deck) + "| " + str(self._new_cards_deck)
 
 class StudyDeck():
     def __init__(self, name):
         self._name = name + ".db"
         self._deck = self.create_database()
 
-
     def create_database(self):
-        conn = sqlite3.connect(self._name)
-        c = conn.cursor()
-
-        c.execute("""CREATE TABLE cards (
-            card text,
-            interval real,
-            timedue real
-            )""")
-
-        conn.commit()
-        conn.close()
+        return []
 
     def get_deck(self):
         return self._deck
+    
+    def __repr__(self):
+        return self.__str__()
+    
+    def __str__(self):
+        return "StudyDeck"
 
 
 
@@ -143,9 +164,14 @@ class NewCardsDeck():
     def get_deck(self):
         return self._deck
 
-
     def next_card(self):
         return self._deck.dequeue()
+
+    def __repr__(self):
+        return self.__str__()
+    
+    def __str__(self):
+        return "New Cards " + str(self._deck)
 
 
 
@@ -153,7 +179,10 @@ class NewCardsDeck():
 
 def main():
     test_deck = Deck("test")
-    print(test_deck.get_study_deck())
+    card = Card("This", "card")
+    test_deck.add_card(card)
+    print(test_deck)
+    
 
 main()
 
