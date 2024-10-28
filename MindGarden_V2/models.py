@@ -34,6 +34,17 @@ class LinkedListQueue:
     def is_empty(self):
         return self._head == None
 
+    def __len__(self):
+        if not self._head:
+            return 0
+        else:
+            i = 0
+            cur = self._head
+            while cur != None:
+                i += 1
+                cur = cur._next
+            return i
+
     def __str__(self):
         if not self._head:
             return "Empty LL!"
@@ -104,30 +115,44 @@ class Card:
 
 class Deck:
     def __init__(self, name):
-        self._study_deck = StudyDeck(name)
+        self._name = name
+        self._study_deck = StudyDeck()
         self._new_cards_deck = NewCardsDeck()
-        self._review_session = 5
+        self._max_new = 5
     
-    def study_session(self):
-        cur_review_queue = LinkedListQueue()
+    def create_review_queue(self):
+        date = datetime.now().isoformat().split("T")[0]
+        
+        study_queue = self._study_deck.get_deck()[date]
+        ratio = max(len(study_queue) // (min(self._max_new, len(self._new_cards_deck.get_deck()))), 1)
 
-        for _ in range(self._review_session):
-            if self._new_cards_deck.is_empty():
+
+        cur_review_queue = LinkedListQueue()
+        for _ in range(self._max_new):
+            if self._new_cards_deck.get_deck().is_empty():
                 break
             else:
-                card = self._new_cards_deck.dequeue()
-                cur_review_queue.queue(card)
+                cur_review_queue.queue(self._new_cards_deck.get_deck().dequeue())
+                i = 0
+                while i < ratio and not study_queue.is_empty():
+                    cur_review_queue.queue(study_queue.dequeue())
+                    i += 1
 
+        while not study_queue.is_empty():
+            cur_review_queue.queue(study_queue.dequeue())
 
-    
+        return cur_review_queue
+
+                    
+
     def add_card(self, card):
         self._new_cards_deck.queue_card(card)
 
     def get_study_deck(self):
-        return self._study_deck.get_deck()
+        return self._study_deck
 
     def get_new_cards_deck(self):
-        return self._new_cards.get_deck()
+        return self._new_cards
 
     def __repr__(self):
         return self.__str__()
@@ -136,12 +161,13 @@ class Deck:
         return str(self._study_deck) + "| " + str(self._new_cards_deck)
 
 class StudyDeck():
-    def __init__(self, name):
-        self._name = name + ".db"
-        self._deck = self.create_database()
+    def __init__(self):
+        self._deck = {}
 
-    def create_database(self):
-        return []
+    def add(self, due_date, card):
+        if due_date not in self._deck:
+            self._deck[due_date] = LinkedListQueue()
+        self._deck[due_date].queue(card)
 
     def get_deck(self):
         return self._deck
@@ -173,15 +199,32 @@ class NewCardsDeck():
     def __str__(self):
         return "New Cards " + str(self._deck)
 
+def test():
+    test_deck = Deck("test")
+    card = Card("This", "card")
+    cards = Card("That", "card")
+    cards1 = Card("these", "cards")
+    cards2 = Card("help", "us")
+    cards3 = Card("please", "god")
+    card2 = Card("card", "2")
+    card3 = Card("card", "3")
+    date = datetime.now().isoformat().split("T")[0]
+    test_deck.add_card(card)
+    test_deck.add_card(cards)
+    test_deck.add_card(cards1)
+    test_deck.add_card(cards2)
+    test_deck.add_card(cards3)
+    test_deck.get_study_deck().add(date, card2)
+    test_deck.get_study_deck().add(date, card3)
+
+    q = test_deck.create_review_queue()
+    print(q)
 
 
 
 
 def main():
-    test_deck = Deck("test")
-    card = Card("This", "card")
-    test_deck.add_card(card)
-    print(test_deck)
+    test()
     
 
 main()
